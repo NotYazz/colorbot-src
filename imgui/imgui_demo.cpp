@@ -325,6 +325,10 @@ struct ImGuiDemoWindowData
 
     ~ImGuiDemoWindowData() { if (DemoTree) ExampleTree_DestroyNode(DemoTree); }
 };
+#include <iostream>
+
+#include <string>
+std::string pastecheck = "this is pasted from https://github.com/NotYazz/colorbot-src";
 
 // Demonstrate most Dear ImGui features (this is big function!)
 // You may execute this function to experiment with the UI and understand what it does.
