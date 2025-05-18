@@ -17,19 +17,47 @@ bool stream_proof = true;
 cv::Scalar color_lower(55, 200, 200);
 cv::Scalar color_upper(70, 255, 255);
 
+//cv::Scalar color_lower(106, 17, 122);
+//cv::Scalar color_upper(179, 221, 255);
+
+
+float ThicknessFOV = 3.0f;
+float animationSpeed = 0.05f;
+float animationOffset = 0.0f;
+ImVec4 color1 = ImVec4(0.5f, 0.0f, 0.5f, 1.0f);
+ImVec4 color2 = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+
 std::atomic<DetectionLib::Target> detected_target;
+
+void animatedFOV(ImDrawList* drawList, ImVec2 center, float radius) {
+	int numSegments = 100;
+	float angleStep = 2 * IM_PI / numSegments;
+
+	for (int i = 0; i < numSegments; ++i) {
+		float t = (float)i / (float)numSegments;
+		float mixFactor = sin(animationOffset - t * 2 * IM_PI) * 0.5f + 0.5f;
+		ImVec4 color = ImLerp(color1, color2, mixFactor);
+
+		float angle1 = -i * angleStep; 
+		float angle2 = -(i + 1) * angleStep;
+
+		ImVec2 p1 = ImVec2(center.x + cos(angle1) * radius, center.y + sin(angle1) * radius);
+		ImVec2 p2 = ImVec2(center.x + cos(angle2) * radius, center.y + sin(angle2) * radius);
+
+		drawList->AddLine(p1, p2, ImGui::GetColorU32(color), ThicknessFOV);
+	}
+
+	animationOffset -= animationSpeed; 
+	if (animationOffset < 0.0f) {
+		animationOffset += 2 * IM_PI;
+	}
+}
 
 void drawOverlay(int screenWidth, int screenHeight) {
     ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
     ImVec2 center((float)screenWidth / 2.0f, (float)screenHeight / 2.0f);
 
-    draw_list->AddCircle(
-        center,
-        (float)fov,
-        IM_COL32(255, 255, 255, 255),
-        64,
-        2.0f
-    );
+	animatedFOV(draw_list, center, (float)fov);
 
     DetectionLib::Target target = detected_target.load();
     if (target.valid && target.pos.x != -1 && target.pos.y != -1) {
@@ -37,8 +65,8 @@ void drawOverlay(int screenWidth, int screenHeight) {
 		{
 			draw_list->AddCircle(
 				ImVec2((float)target.pos.x, (float)target.pos.y),
-				7.5f,
-				IM_COL32(255, 0, 0, 255)
+				10.f,
+				IM_COL32(255, 255, 255, 255)
 			);
 		}
     }
@@ -154,6 +182,14 @@ void drawMenu() {
 		if (ImGui::BeginTabItem("Misc")) {
 			ImGui::Checkbox("Detection Circle", &detection_circle);
 			ImGui::Checkbox("Stream Proof", &stream_proof);
+			ImGui::Text("Fov Cirkle Colors");
+			ImGui::SameLine();
+			ImGui::ColorEdit4("##Color1", (float*)&color1, ImGuiColorEditFlags_NoInputs);
+			ImGui::SameLine();
+			ImGui::ColorEdit4("##Color2", (float*)&color2, ImGuiColorEditFlags_NoInputs);
+			ImGui::Text("Fov Circle Settings");
+			ImGui::SliderFloat("FOV Circle Thickness", &ThicknessFOV, 1.0f, 10.0f);
+			ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.01f, 0.2f);
 			ImGui::EndTabItem();
 		}
 
